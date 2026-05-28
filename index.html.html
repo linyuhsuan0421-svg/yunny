@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幽冥導師：教室防禦戰</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap');
+        body {
+            font-family: 'Courier Prime', monospace;
+            background: radial-gradient(circle at top, rgba(48, 10, 10, 0.9), rgba(0, 0, 0, 1)) fixed;
+            color: #f6ffeb;
+            overflow-x: hidden;
+        }
+        .video-background {
+            position: fixed;
+            inset: 0;
+            z-index: -200;
+            overflow: hidden;
+            background: #000;
+        }
+        .video-background video {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            filter: brightness(0.45) contrast(1.1) saturate(1.2);
+            transform: scale(1.02);
+        }
+        .crt-overlay {
+            pointer-events: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 48%, rgba(0, 0, 0, 0.55) 80%),
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.12), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.08));
+            background-size: 100% 4px, 3px 100%;
+            opacity: 0.35;
+            z-index: 150;
+        }
+        .monitor-glow {
+            box-shadow: 0 0 50px rgba(220, 38, 38, 0.25), inset 0 0 22px rgba(34, 197, 94, 0.12);
+            border-color: rgba(220, 38, 38, 0.75);
+        }
+        .panel-shadow { box-shadow: 0 0 40px rgba(255, 0, 0, 0.2); }
+        .text-glow { text-shadow: 0 0 16px rgba(239, 68, 68, 0.32), 0 0 26px rgba(255,255,255,0.08); }
+        .cover-screen {
+            position: relative;
+            overflow: hidden;
+            min-height: 420px;
+            border-radius: 32px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(3, 3, 3, 0.45);
+        }
+        .cover-screen img {
+            width: 100%;
+            height: auto;
+            display: block;
+            filter: saturate(1.2) contrast(1.1) brightness(0.9);
+        }
+        .cover-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(0,0,0,0.25), rgba(0,0,0,0.84));
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            gap: 18px;
+            padding: 36px 32px;
+        }
+        .cover-badge {
+            display: inline-flex;
+            padding: 6px 14px;
+            border: 1px solid rgba(248, 113, 113, 0.65);
+            color: #fbcfe8;
+            font-size: 0.75rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            backdrop-filter: blur(6px);
+            background: rgba(15, 23, 42, 0.55);
+        }
+        .cover-overlay h2 {
+            font-size: clamp(2.2rem, 4vw, 3.6rem);
+            color: #f8fafc;
+            text-shadow: 0 0 22px rgba(0,0,0,0.75);
+            margin: 0;
+            line-height: 1.05;
+        }
+        .cover-overlay p {
+            color: rgba(255,255,255,0.92);
+            line-height: 1.8;
+            margin: 0;
+            letter-spacing: 0.02em;
+        }
+        .cover-button {
+            align-self: flex-start;
+            border: 1px solid rgba(248, 113, 113, 0.95);
+            background: rgba(15, 23, 42, 0.95);
+            color: #fee2e2;
+            padding: 1rem 1.9rem;
+            border-radius: 999px;
+            box-shadow: 0 0 22px rgba(239, 68, 68, 0.28);
+            transition: transform 0.22s ease, background 0.22s ease;
+            cursor: pointer;
+        }
+        .cover-button:hover {
+            transform: translateY(-2px) scale(1.02);
+            background: rgba(255,255,255,0.08);
+        }
+        .scene-label { font-size: 0.78rem; letter-spacing: 0.22em; color: #fb7185; text-transform: uppercase; }
+        .choice-animate { transition: transform 0.24s ease, background 0.24s ease, box-shadow 0.24s ease; }
+        .choice-animate:hover { transform: translateX(4px) scale(1.01); box-shadow: 0 0 18px rgba(239, 68, 68, 0.2); }
+        .scene-glitch { animation: glitch 1.2s infinite; }
+        .scene-drip { animation: drip 4.2s ease-in-out infinite; }
+        .scene-whisper { animation: whisper 5.5s ease-in-out infinite; }
+        .blood-border { position: relative; }
+        .blood-border::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 14%; width: 4px; height: 18px;
+            background: linear-gradient(180deg, transparent, rgba(239,68,68,0.95));
+            box-shadow: 0 0 18px rgba(239,68,68,0.7);
+            animation: drip 2s infinite ease-in-out;
+        }
+        .gameover-screen {
+            position: relative;
+            padding: 30px 24px;
+            border: 1px solid rgba(239, 68, 68, 0.8);
+            background: rgba(15, 6, 6, 0.96);
+            box-shadow: 0 0 60px rgba(239, 68, 68, 0.4);
+            animation: pulse-red 2.5s ease-in-out infinite;
+            overflow: hidden;
+        }
+        .glass-shatter {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+            opacity: 0.82;
+            filter: blur(0.2px);
+            animation: crack-spread 1.2s ease-out forwards;
+        }
+        .glass-shatter span {
+            position: absolute;
+            display: block;
+            width: 140%;
+            height: 2px;
+            background: rgba(255,255,255,0.16);
+            box-shadow: 0 0 24px rgba(255,255,255,0.18);
+            transform-origin: left center;
+            opacity: 0;
+        }
+        .glass-shatter span:nth-child(1) { top: 18%; left: -10%; transform: rotate(18deg); animation: crack-line 0.9s 0.05s ease-out forwards; }
+        .glass-shatter span:nth-child(2) { top: 42%; left: -18%; transform: rotate(-12deg); animation: crack-line 1.0s 0.12s ease-out forwards; }
+        .glass-shatter span:nth-child(3) { top: 65%; left: -8%; transform: rotate(8deg); animation: crack-line 1.1s 0.18s ease-out forwards; }
+        .glass-shatter span:nth-child(4) { top: 28%; left: -12%; transform: rotate(-28deg); animation: crack-line 0.95s 0.08s ease-out forwards; }
+        .glass-shatter span:nth-child(5) { top: 58%; left: -15%; transform: rotate(24deg); animation: crack-line 1.05s 0.14s ease-out forwards; }
+        .fullscreen-shatter {
+            position: fixed;
+            inset: 0;
+            z-index: 999;
+            pointer-events: none;
+            background: radial-gradient(circle at center, rgba(255,255,255,0.03), transparent 20%),
+                        radial-gradient(circle at 30% 30%, rgba(255,255,255,0.08), transparent 0.4%),
+                        radial-gradient(circle at 80% 25%, rgba(255,255,255,0.06), transparent 0.3%);
+            mix-blend-mode: screen;
+            opacity: 0;
+            animation: break-fade 1.4s ease-out forwards;
+        }
+        .fullscreen-shatter span {
+            position: absolute;
+            display: block;
+            width: 150%;
+            height: 2px;
+            background: rgba(255,255,255,0.18);
+            box-shadow: 0 0 18px rgba(255,255,255,0.18);
+            transform-origin: left center;
+            opacity: 0;
+        }
+        .fullscreen-shatter span:nth-child(1) { top: 12%; left: -20%; transform: rotate(20deg); animation: shatter-line 0.8s 0.05s ease-out forwards; }
+        .fullscreen-shatter span:nth-child(2) { top: 32%; left: -18%; transform: rotate(-14deg); animation: shatter-line 0.9s 0.1s ease-out forwards; }
+        .fullscreen-shatter span:nth-child(3) { top: 48%; left: -15%; transform: rotate(10deg); animation: shatter-line 1s 0.16s ease-out forwards; }
+        .fullscreen-shatter span:nth-child(4) { top: 64%; left: -22%; transform: rotate(-28deg); animation: shatter-line 1.05s 0.12s ease-out forwards; }
+        .fullscreen-shatter span:nth-child(5) { top: 78%; left: -12%; transform: rotate(22deg); animation: shatter-line 1.1s 0.18s ease-out forwards; }
+        .fullscreen-shatter span:nth-child(6) { top: 88%; left: -18%; transform: rotate(-8deg); animation: shatter-line 1.2s 0.2s ease-out forwards; }
+        .gameover-screen::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, rgba(255, 0, 0, 0.14), transparent 35%),
+                        repeating-linear-gradient(0deg, rgba(255,255,255,0.04), rgba(255,255,255,0.04) 2px, transparent 2px, transparent 4px);
+            mix-blend-mode: screen;
+            pointer-events: none;
+            animation: static-flicker 0.18s infinite alternate;
+        }
+        .gameover-screen::after {
+            content: 'SYSTEM FAILURE';
+            position: absolute;
+            top: 18px;
+            right: 20px;
+            color: rgba(255, 255, 255, 0.14);
+            font-size: 0.75rem;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            transform: rotate(6deg);
+        }
+        .gameover-title {
+            position: relative;
+            font-size: clamp(2rem, 3vw, 2.6rem);
+            color: #ffbaba;
+            text-shadow: 0 0 18px rgba(255, 51, 51, 0.85);
+            margin-bottom: 1rem;
+            animation: shake-text 0.8s ease-in-out infinite;
+        }
+        .gameover-subtitle {
+            position: relative;
+            color: rgba(255,255,255,0.92);
+            margin-bottom: 1.5rem;
+            line-height: 1.8;
+        }
+        .gameover-button {
+            border: 1px solid rgba(248, 113, 113, 0.95);
+            padding: 0.95rem 1.8rem;
+            color: #fee2e2;
+            background: rgba(15, 23, 42, 0.95);
+            border-radius: 999px;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.25);
+            transition: transform 0.24s ease, background 0.24s ease;
+        }
+        .gameover-button:hover { transform: translateY(-2px) scale(1.02); background: rgba(255,255,255,0.08); }
+        footer { color: #fbb6ce; }
+        @keyframes flicker {
+            0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
+            20%, 24%, 55% { opacity: 0.35; }
+        }
+        @keyframes glitch {
+            0%, 20%, 40%, 60%, 80%, 100% { transform: translate(0,0); }
+            10% { transform: translate(-2px,1px) skew(0.6deg); }
+            30% { transform: translate(2px,-1px) skew(-0.6deg); }
+            50% { transform: translate(-1px,-2px) skew(0.4deg); }
+            70% { transform: translate(1px,2px) skew(-0.3deg); }
+            90% { transform: translate(-1px,1px); }
+        }
+        @keyframes drip {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.003) translateY(2px); }
+        }
+        @keyframes whisper {
+            0%, 100% { transform: translateY(0); opacity: 1; }
+            50% { transform: translateY(-6px); opacity: 0.88; }
+        }
+        @keyframes pulse-red {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 50px rgba(239, 68, 68, 0.3); }
+            50% { transform: scale(1.01); box-shadow: 0 0 60px rgba(239, 68, 68, 0.45); }
+        }
+        @keyframes static-flicker {
+            0% { opacity: 0.45; transform: translateY(0); }
+            50% { opacity: 0.18; transform: translateY(-1px); }
+            100% { opacity: 0.5; transform: translateY(1px); }
+        }
+        @keyframes break-fade {
+            0% { opacity: 0; transform: scale(0.98); }
+            40% { opacity: 0.75; transform: scale(1); }
+            100% { opacity: 0.82; transform: scale(1.01); }
+        }
+        @keyframes shatter-line {
+            0% { opacity: 0; transform: scaleX(0.05) rotate(var(--r)); }
+            55% { opacity: 0.85; transform: scaleX(0.92) rotate(var(--r)); }
+            100% { opacity: 0.18; transform: scaleX(1) rotate(var(--r)); }
+        }
+        @keyframes crack-line {
+            0% { opacity: 0; transform: scaleX(0.1) rotate(var(--r)); }
+            60% { opacity: 0.7; transform: scaleX(0.92) rotate(var(--r)); }
+            100% { opacity: 0.26; transform: scaleX(1) rotate(var(--r)); }
+        }
+        @keyframes crack-spread {
+            0% { opacity: 0; transform: scale(0.96); }
+            40% { opacity: 0.9; transform: scale(1); }
+            100% { opacity: 0.82; transform: scale(1.01); }
+        }
+        @keyframes shake-text {
+            0%, 100% { transform: translateX(0); }
+            10% { transform: translateX(-1px); }
+            20% { transform: translateX(2px); }
+            30% { transform: translateX(-2px); }
+            40% { transform: translateX(1px); }
+            50% { transform: translateX(-1px); }
+            60% { transform: translateX(2px); }
+            70% { transform: translateX(-1px); }
+            80% { transform: translateX(1px); }
+            90% { transform: translateX(-1px); }
+        }
+    </style>
+</head>
+<body class="relative flex flex-col items-center justify-center min-h-screen p-4 overflow-hidden">
+    <div class="video-background">
+        <video autoplay muted loop playsinline src="v2_watermarked-3de4aa49-3af3-4225-b1da-b8eabe0f2f51.mp4"></video>
+    </div>
+    <div class="crt-overlay"></div>
+
+    <div id="game-container" class="max-w-xl w-full z-20 border border-red-800 p-6 bg-[#080303] monitor-glow panel-shadow">
+        <h1 class="text-3xl md:text-4xl font-black mb-6 border-b border-red-700 pb-3 flex items-center gap-3 text-[#fed7d7] text-glow">
+            幽冥導師：教室監控終端
+        </h1>
+        
+        <div id="content"></div>
+    </div>
+
+    <footer class="mt-8 text-[10px] text-green-800 uppercase tracking-[0.2em] z-20">
+        Subject_ID: Teacher_#001 // Monitoring Active
+    </footer>
+
+    <script>
+        const scenarios = [
+            { text: "剛踏入教室，空氣中瀰漫著腐敗書本與霉味。後排的林同學正要把課桌椅拆下來，他轉頭看向你，眼球呈現灰白色，嘴角流著涎水。", scene: 'glitch', choices: [{t: "大聲喝止，要求他立刻坐下", e: {o: 15, t: 20}}, {t: "溫柔地詢問：『你需要幫忙嗎？』", e: {o: -10, t: 5}}, {t: "冷漠地無視，走向講台", e: {o: -5, t: 10}}] },
+            { text: "陳同學掏出一塊發黑的肉排啃食，發出黏膩的咀嚼聲。左側的張同學正伏在桌上，但背部以不自然的頻率劇烈起伏，似乎在笑。", scene: 'drip', choices: [{t: "丟出教鞭，阻止他繼續進食", e: {o: 20, t: 35}}, {t: "走過去拍拍他的背，詢問他是否還好", e: {o: -20, t: 40}}, {t: "帶領全班朗讀課文，掩蓋咀嚼聲", e: {o: 25, t: 15}}] },
+            { text: "窗外的天空是扭曲的紫紅色。教室角落的兩名學生正低聲私語，聲音聽起來像是無數昆蟲在爬行，令人頭皮發麻。", scene: 'whisper', choices: [{t: "走過去強行分開他們", e: {o: 10, t: 30}}, {t: "在黑板上寫下規則，強迫他們注視黑板", e: {o: 15, t: 10}}, {t: "聽清楚他們在聊什麼內容", e: {o: -30, t: 50}}] }
+        ];
+
+        let state = { s: 0, o: 50, t: 0, g: 'start' };
+
+        function render() {
+            const container = document.getElementById('content');
+            const scene = scenarios[state.s] || scenarios[0];
+            const sceneClass = scene.scene || 'glitch';
+            const sceneLabel = scene.scene === 'glitch' ? '異界失控波動' : scene.scene === 'drip' ? '血液回響紋理' : '幽語回音殿';
+
+            if (state.g === 'start') {
+                container.innerHTML = `
+                    <div class="cover-screen">
+                        <div class="cover-overlay">
+                            <div>
+                                <h2>幽冥導師：教室防禦戰</h2>
+                                <p>危機警報已啟動。深層監控影像正播放於背景，進入最黑暗的教室迴路。</p>
+                            </div>
+                            <button onclick="startGame()" class="cover-button">啟動監控</button>
+                        </div>
+                    </div>
+                `;
+            } else if (state.g === 'playing') {
+                container.innerHTML = `
+                    <div class="flex justify-between mb-6 text-xs bg-[#120505] p-3 border border-red-800 text-[#f8fafc] rounded-md shadow-[0_0_18px_rgba(239,68,68,0.12)]">
+                        <span>乖巧: ${state.o}%</span><span class="text-[#fecaca]">壓力: ${state.t}%</span>
+                    </div>
+                    <div class="mb-4 text-[0.78rem] scene-label tracking-[0.12em]">${sceneLabel} <span class="text-[#94a3b8]">/ 異常級別</span></div>
+                    <div class="h-44 mb-6 bg-[#090606] p-5 border border-[#581c1c] italic text-sm overflow-hidden text-[#e7ffe5] ${sceneClass} blood-border">${scene.text}</div>
+                    <div class="space-y-3">${scene.choices.map((c, i) => `<button onclick="handleChoice(${i})" class="w-full text-left p-4 border border-[#511111] choice-animate bg-[#140909]/95 text-[#f8fff2] hover:bg-[#2b0d0d] shadow-[0_0_14px_rgba(239,68,68,0.14)]">[${i + 1}] ${c.t}</button>`).join('')}</div>
+                `;
+            } else {
+                container.innerHTML = `<div class="fullscreen-shatter"><span style="--r: 20deg;"></span><span style="--r: -14deg;"></span><span style="--r: 10deg;"></span><span style="--r: -28deg;"></span><span style="--r: 22deg;"></span><span style="--r: -8deg;"></span></div><div class="gameover-screen text-center"><div class="glass-shatter"><span style="--r: 18deg;"></span><span style="--r: -12deg;"></span><span style="--r: 8deg;"></span><span style="--r: -28deg;"></span><span style="--r: 24deg;"></span></div><h2 class="gameover-title">系統全面崩潰</h2><p class="gameover-subtitle">教室深處的黑暗已經突破防線。聲音開始喃喃，裂縫中的眼睛正盯著你。</p><button onclick="location.reload()" class="gameover-button">重新啟動監控</button></div>`;
+            }
+        }
+
+        window.startGame = () => { state.g = 'playing'; render(); };
+        window.handleChoice = (i) => {
+            const e = scenarios[state.s].choices[i].e;
+            state.o = Math.max(0, Math.min(100, state.o + e.o));
+            state.t = Math.max(0, Math.min(100, state.t + e.t));
+            if (state.o <= 0 || state.t >= 90) state.g = 'gameover';
+            else state.s = (state.s + 1) % scenarios.length;
+            render();
+        };
+        render();
+    </script>
+</body>
+</html>
